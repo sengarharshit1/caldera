@@ -234,6 +234,7 @@ class DataService(DataServiceInterface, BaseService):
                 await self._load_packers(plug)
             for task in async_tasks:
                 await task
+            await self._load_data_encoders(plugins)
             await self._load_extensions()
             await self._verify_data_sets()
         except Exception as e:
@@ -297,6 +298,15 @@ class DataService(DataServiceInterface, BaseService):
             if await packer.check_dependencies(self.get_service('app_svc')):
                 plug_packers[packer.name] = packer
         self.get_service('file_svc').packers.update(plug_packers)
+
+    async def _load_data_encoders(self, plugins):
+        glob_paths = ['app/data_encoders/**.py'] + \
+                     ['plugins/%s/app/data_encoders/**.py' % plugin.name for plugin in plugins]
+        for glob_path in glob_paths:
+            for module_path in glob.iglob(glob_path):
+                imported_module = import_module(module_path.replace('/', '.').replace('\\', '.').replace('.py', ''))
+                encoder = imported_module.load()
+                await self.store(encoder)
 
     async def _create_ability(self, ability_id, tactic=None, technique_name=None, technique_id=None, name=None,
                               test=None, description=None, executor=None, platform=None, cleanup=None, payloads=None,

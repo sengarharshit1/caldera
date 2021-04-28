@@ -1,5 +1,4 @@
-import logging
-from importlib import import_module
+from abc import abstractmethod
 
 import marshmallow as ma
 
@@ -21,11 +20,10 @@ class DataEncoder(FirstClassObjectInterface, BaseObject):
     def unique(self):
         return self.hash('%s' % self.name)
 
-    def __init__(self, name, description, module):
+    def __init__(self, name, description):
         super().__init__()
         self.name = name
         self.description = description
-        self.module = module
 
     def store(self, ram):
         existing = self.retrieve(ram['data_encoders'], self.unique)
@@ -34,9 +32,10 @@ class DataEncoder(FirstClassObjectInterface, BaseObject):
             return self.retrieve(ram['data_encoders'], self.unique)
         return existing
 
-    def load(self):
-        try:
-            mod = import_module(self.module)
-            return mod.DataEncoding()
-        except Exception as e:
-            logging.error('Error importing data encoder=%s, %s' % (self.name, e))
+    @abstractmethod
+    def encode(self, data, **_):
+        pass
+
+    @abstractmethod
+    def decode(self, data, **_):
+        pass
